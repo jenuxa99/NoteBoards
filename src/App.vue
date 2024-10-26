@@ -1,20 +1,21 @@
 <script setup>
-import { ref } from 'vue';
-import Board from './components/Board-component.vue';
 import Tab from './components/Tab-component.vue';
-
-const boards = ref([])
+import router from './router';
+import { boards } from './store';
 
 const addBoard = () => {
   boards.value.push({
     id: Date.now(),
     title: 'Новая доска',
-  })
+    notes: [] 
+  });
 };
 
 const deleteBoard = (boardId) => {
   boards.value = boards.value.filter(board => board.id !== boardId);
-  // console.log(boards.value)
+  if (boards.value.length === 0) {
+    router.push('/');
+  }
 };
 </script>
 
@@ -25,9 +26,11 @@ const deleteBoard = (boardId) => {
       <button @click="addBoard"
         class="border border-black p-1 w-10 rounded-lg text-xl font-bold bg-green-200 hover:bg-green-300 active:bg-green-400 duration-300">+</button>
       <div class="flex gap-1">
-        <Tab v-for="item in boards" :key="item.id" :title="item.title" @deleteBoard="deleteBoard(item.id)" />
+        <Tab v-for="item in boards" :key="item.id" :id="item.id" :title="item.title"
+          @deleteBoard="deleteBoard(item.id)" />
       </div>
     </section>
-    <Board v-for="board in boards" :key="board.id" />
+
+    <RouterView />
   </section>
 </template>

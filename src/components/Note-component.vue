@@ -1,17 +1,21 @@
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount, defineEmits } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, defineEmits, watch } from 'vue';
 
 const props = defineProps({
     title: String,
     color: String,
-    noteId: Number
+    noteId: Number,
+    x: Number,
+    y: Number,
+    isMoveable: Boolean,
 });
 
-const emit = defineEmits('deleteNote');
+const position = ref({ x: props.x, y: props.y });
+const emit = defineEmits(['deleteNote', 'updatePosition']);
 const noteRef = ref(null);
 
-const isMoveable = ref(true);
-const isVisible = ref(false);
+const isMoveable = ref(props.isMoveable);
+const isVisible = ref(true);
 
 const bgColor = computed(() => `bg-[${props.color}]`);
 
@@ -25,26 +29,24 @@ const makeDraggable = (element, container) => {
 
         const initialMouseX = event.clientX;
         const initialMouseY = event.clientY;
-        const initialPos = { left: element.offsetLeft, top: element.offsetTop };
+
+        const noteRect = element.getBoundingClientRect();
+        const initialPos = { left: position.value.x, top: position.value.y };
 
         const moveAt = (pageX, pageY) => {
             const containerRect = container.getBoundingClientRect();
-            const noteRect = element.getBoundingClientRect();
 
             let newLeft = initialPos.left + (pageX - initialMouseX);
             let newTop = initialPos.top + (pageY - initialMouseY);
 
-            if (newLeft < 0) newLeft = 0;
-            if (newLeft > containerRect.width - noteRect.width) {
-                newLeft = containerRect.width - noteRect.width;
-            }
-            if (newTop < 0) newTop = 0;
-            if (newTop > containerRect.height - noteRect.height) {
-                newTop = containerRect.height - noteRect.height;
-            }
+            newLeft = Math.max(0, Math.min(newLeft, containerRect.width - noteRect.width));
+            newTop = Math.max(0, Math.min(newTop, containerRect.height - noteRect.height));
 
             element.style.left = `${newLeft}px`;
             element.style.top = `${newTop}px`;
+
+            position.value = { x: newLeft, y: newTop };
+            emit('updatePosition', { noteId: props.noteId, x: position.value.x, y: position.value.y, isMoveable: isMoveable.value });
         };
 
         const onMouseMove = (event) => {
@@ -69,13 +71,13 @@ const handleClickOutside = (event) => {
 };
 
 const toPin = () => {
-    isMoveable.value = !isMoveable.value;
-}
+    isMoveable.value = !isMoveable.value; 
+    emit('updatePosition', { noteId: props.noteId, x: position.value.x, y: position.value.y, isMoveable: isMoveable.value });
+};
 
 const toDel = () => {
     emit('deleteNote', props.noteId);
-}
-
+};
 
 onMounted(() => {
     const container = document.querySelector('.container');
@@ -85,6 +87,18 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     document.removeEventListener('mousedown', handleClickOutside);
+});
+
+watch(() => props.x, (newX) => {
+    position.value.x = newX;
+});
+
+watch(() => props.y, (newY) => {
+    position.value.y = newY;
+});
+
+watch(() => props.isMoveable, (newIsMoveable) => {
+    isMoveable.value = newIsMoveable; 
 });
 </script>
 
